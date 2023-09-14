@@ -3,6 +3,7 @@
 import boto3
 import configparser
 import csv
+import datetime
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
@@ -12,8 +13,10 @@ config = Config(
     )
 )
 
+today = datetime.date.today()
+today = (today.strftime("%F"))
 config_file = '/home/user1/.aws/.python-profiles.conf'
-report_file = ("/tmp/users_and_tags.csv")
+report_file = (f"/tmp/{today}.users_and_tags.csv")
 with open(report_file, "w") as file:
     file.write("USER;EMAIL_TAG;EMAIL_TAG_VALUE;ACCOUNT_NAME;ACCOUNT_NR\n")
 
@@ -21,7 +24,8 @@ with open(report_file, "w") as file:
 def read_profile_list(config_file):
     config = configparser.ConfigParser()
     config.read(config_file)
-    profile_list = config.get('multipleProfiles', 'profile_list')
+    #profile_list = config.get('multipleProfiles', 'profile_list')
+    profile_list = config.get('testProfile', 'profile_list')
     profile_list = profile_list.split(' ')
     return profile_list
 
@@ -76,10 +80,11 @@ def pretty_ssv(filename):
             print(' '.join(f'{cell:<{column_widths[i]}}' for i, cell in enumerate(row)))
 
 
-profile_list = read_profile_list(config_file)
-for p in profile_list:
-  profileName = p.replace('"', '')
-  get_email_tag_from_users(profileName)
+if __name__ == "__main__":
+    profile_list = read_profile_list(config_file)
+    for p in profile_list:
+      profileName = p.replace('"', '')
+      get_email_tag_from_users(profileName)
 
 print(f"\n\n")
 pretty_ssv(report_file)
