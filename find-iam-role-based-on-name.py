@@ -19,7 +19,8 @@ print(f"ROLE_NAME;ROLE_ARN;ACCOUNT_NAME;REGION")
 def read_profile_list(config_file):
     config = configparser.ConfigParser()
     config.read(config_file)
-    profile_list = config.get('multipleProfiles', 'profile_list')
+    #profile_list = config.get('multipleProfiles', 'profile_list')
+    profile_list = config.get('testProfile', 'profile_list')
     profile_list = profile_list.split(' ')
     return profile_list
 
@@ -47,7 +48,8 @@ def find_iam_role(profileName, pattern):
 	    print(f"ISSUE with listing roles using {profileName} profile with error:\n{e}")
 
 
-profile_list = read_profile_list(config_file)
-for p in profile_list:
-	profileName = p.replace('"', '')
-	find_iam_role(profileName, pattern)
+if __name__ == "__main__":
+	profile_list = read_profile_list(config_file)
+	for p in profile_list:
+		profileName = p.replace('"', '')
+		find_iam_role(profileName, pattern)
