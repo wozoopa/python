@@ -3,6 +3,7 @@
 import boto3
 import configparser
 import csv
+import datetime
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
@@ -11,6 +12,9 @@ config = Config(
         max_attempts = 10
     )
 )
+
+today = datetime.date.today()
+today = (today.strftime("%F"))
 
 config_file = '/home/user1/.aws/.python-profiles.conf'
 def read_profile_list(config_file):
@@ -22,19 +26,27 @@ def read_profile_list(config_file):
     return profile_list
 
 
+def list_aws_regions():
+    session = boto3.session.Session()
+    available_regions = session.get_available_regions('ec2')
+    return available_regions
+
+
 def list_aws_services(profileName):
     session = boto3.Session(profile_name=profileName)
+    print(f"our profile is {profileName} ..")
     iam = session.client("iam",region_name='us-east-1', config=config)
     ec2 = session.client("ec2",region_name='us-east-1', config=config)
     account_alias = iam.list_account_aliases()
     accountName = account_alias['AccountAliases'][0]
 
-    report_file = (f"/tmp/{accountName}.available_services.csv")
-    report_file_log = (f"/tmp/{accountName}.available_services.log")
+    report_file = (f"/tmp/{accountName}.{today}.available_services.csv")
+    report_file_log = (f"/tmp/{accountName}.{today}.available_services.log")
     with open(report_file, "w") as file:
         file.write(f"SERVICE_NAME;REGION;ACCOUNT_NAME\n")
 
-    regions = [region["RegionName"] for region in ec2.describe_regions()["Regions"]]
+    regions = list_aws_regions()
+
     for region in regions:
         ssm = session.client("ssm", region_name=region, config=config)
         path = '/aws/service/global-infrastructure/services/'
@@ -50,12 +62,12 @@ def list_aws_services(profileName):
                         print(write_line, file=file)
 
         except Exception as e:
-            write_line = (f"ISSUE getting parameter from {path} in {region} region with ERROR:\n{e}\nDETAILS of page in paginator:\n{page}\nSERVICE-NAME is:\n {serviceName}")
-            with open(report_file, "a") as file:
+            serviceName = "unable-to-get-serviceName"
+            write_line = (f"ISSUE getting parameter from {path} in {region} region with ERROR:\n{e}\nDETAILS of page in paginator:\nSERVICE-NAME is:\n {serviceName}")
+            with open(report_file_log, "a") as file:
                 print(write_line, file=file)
 
     print(f"Report saved in {report_file}\nReading file..\n")
-    pretty_ssv(report_file)
 
 
 def pretty_ssv(filename):
@@ -69,8 +81,9 @@ def pretty_ssv(filename):
             print(' '.join(f'{cell:<{column_widths[i]}}' for i, cell in enumerate(row)))
 
 
-profile_list = read_profile_list(config_file)
-for p in profile_list:
-  profileName = p.replace('"', '')
-  list_aws_services(profileName)
-
+if __name__ == "__main__":
+    profile_list = read_profile_list(config_file)
+    for p in profile_list:
+        profileName = p.replace('"', '')
+        print(f"Profile name is: {profileName}")
+        list_aws_services(profileName)
